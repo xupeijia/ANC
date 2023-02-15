@@ -2,44 +2,46 @@ import numpy as np
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
-import common
-import create_data
-import crnn_lstm
+import utils
+import path_function
+from network import CrnNet
 
 # 设置超参数
-num_epochs = 30
-
-# 导入原始数据
-filename = 'GE-SZNGA Premier-3D-AXT1-MPR.txt'
-t, x = common.read_vibration(file_name='GE-SZNGA Premier-3D-AXT1-MPR.txt')
-
-# 降采样数据到16kHz
-sig = create_data.resample_and_filter(x, 50000, 16000, 8000)
-y = -1 * common.get_real_pynl_2(sig)
-
-# 分割数据
-sig_segment = create_data.create_segment(sig, 10, 3, 1, 16000)
-y_segment = create_data.create_segment(y, 10, 3, 1, 16000)
-
-# 把训练数据进行stft
-sig_tensor = create_data.stft(sig_segment, 320, 160)
-
-# dataloader
-train_loader, val_loader, test_loader, y_test = common.split_data(sig_tensor, y_segment, 0.75, 1, True)
+num_epochs = 10
 
 # 设置设备
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # 次级路径传递函数
-# Sw = torch.tensor([0, 0, 0.9, 0.6, 0.1, -0.4, -0.1, 0.2, 0.1, 0.01, 0.001, 0, 0, 0, 0, 0], device=device)
-Sw = np.array([0, 0, 0.9, 0.6, 0.1, -0.4, -0.1, 0.2, 0.1, 0.01, 0.001, 0, 0, 0, 0, 0])
+sw = torch.tensor([0.05, 0.2, 1], dtype=torch.float32, device=device)
+# sw = torch.tensor([0.001, 0.01, 0.1, 0.2, -0.1, -0.4, -0.1, 0.6, 0.9, 0, 0], dtype=torch.float32, device=device)
+is_divided = True
+is_for_crn = True
+is_for_bp = False
+
+# 导入原始数据
+filename = 'GE-SZNGA Premier-3D-AXT1-MPR.txt'
+t, x = utils.read_vibration(file_name='GE-SZNGA Premier-3D-AXT1-MPR.txt')
+
+# 降采样数据到16kHz
+sig = utils.resample_and_filter(x, 50000, 16000, 8000)
+y = -1 * path_function.get_real_pynl_2(sig)
+
+# 分割数据
+sig_segment = utils.create_segment(sig, 10, 3, 1, 16000, device)
+y_segment = utils.create_segment(y, 10, 3, 1, 16000, device)
+
+# 把训练数据进行stft
+sig_tensor = utils.stft(sig_segment, 320, 160, device)
+
+# dataloader
+train_loader, val_loader, test_loader, y_test = utils.split_data(sig_tensor, y_segment, 0.75, 1, True)
 
 # 初始化模型
-model = crnn_lstm.Net().to(device)
+model = CrnNet().to(device)
 
 # 定义损失函数和优化器
 criterion = nn.MSELoss()
-# criterion = LossFunction()
 optimizer = torch.optim.RMSprop(model.parameters(), lr=0.001)
 
 # 开始训练
@@ -52,10 +54,9 @@ for epoch in range(num_epochs):
         # 前向传播
         outputs = model(inputs)
         # 进行i_stft
-        outputs = create_data.i_stft(outputs, 320, 160)
+        outputs = utils.i_stft(outputs, 320, 160, device)
         # 传入次级路径
-        outputs = 3.3 * torch.tanh_(0.3 * outputs)
-        outputs = create_data.sp_fun(outputs)
+        outputs = path_function.sp_fun(outputs, sw, is_divided, is_for_crn, is_for_bp, device)
         # 计算损失
         loss = criterion(outputs, labels)
         # 反向传播
@@ -68,10 +69,9 @@ for epoch in range(num_epochs):
         inputs, labels = inputs.to(device), labels.to(device)
         outputs = model(inputs)
         # 进行i_stft
-        outputs = create_data.i_stft(outputs, 320, 160)
+        outputs = utils.i_stft(outputs, 320, 160, device)
         # 传入次级路径
-        outputs = 3.3 * torch.tanh_(0.3 * outputs)
-        outputs = create_data.sp_fun(outputs)
+        outputs = path_function.sp_fun(outputs, sw, is_divided, is_for_crn, is_for_bp, device)
         loss = criterion(outputs, labels)
         val_loss += criterion(outputs, labels)
 
@@ -81,23 +81,22 @@ for epoch in range(num_epochs):
     # 保存最优模型
     if val_loss < prev_val_loss:
         prev_val_loss = val_loss
-        torch.save(model.state_dict(), "best_model_sp.pth")
+        torch.save(model.state_dict(), "best_model_crn.pth")
 
 # 测试
-model.load_state_dict(torch.load("best_model_sp.pth"))
+model.load_state_dict(torch.load("best_model_crn.pth"))
 model.eval()
 test_loss = 0
 for inputs, labels in test_loader:
     inputs, labels = inputs.to(device), labels.to(device)
-    outputs = model(inputs)
-    # 进行i_stft
-    outputs = create_data.i_stft(outputs, 320, 160)
-    # 传入次级路径
-    outputs = 3.3 * torch.tanh_(0.3 * outputs)
-    outputs = create_data.sp_fun(outputs)
-    test_loss += criterion(outputs, labels)
-    test_loss /= len(test_loader)
-    # print("test loss: ", test_loss)
+    with torch.no_grad():
+        outputs = model(inputs)
+        # 进行i_stft
+        outputs = utils.i_stft(outputs, 320, 160, device)
+        # 传入次级路径
+        outputs = path_function.sp_fun(outputs, sw, is_divided, is_for_crn, is_for_bp, device)
+        test_loss += criterion(outputs, labels)
+        test_loss /= len(test_loader)
 
 # 预测
 predictions = []
@@ -106,10 +105,9 @@ for inputs, _ in test_loader:
     with torch.no_grad():
         prediction = model(inputs)
         # 输出进行istft
-        prediction = create_data.i_stft(prediction, 320, 160)
+        prediction = utils.i_stft(prediction, 320, 160, device)
         # 经过次级路径
-        prediction = 3.3 * torch.tanh_(0.3 * prediction)
-        prediction = create_data.sp_fun(prediction)
+        prediction = path_function.sp_fun(prediction, sw, is_divided, is_for_crn, is_for_bp, device)
         predictions = predictions + prediction.tolist()
 
 # 绘制预测结果

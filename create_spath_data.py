@@ -1,7 +1,7 @@
 import scipy.signal as signal
 import numpy as np
 import pandas as pd
-import common
+import utils
 
 # 产生线性部分系数向量
 from matplotlib import pyplot as plt
