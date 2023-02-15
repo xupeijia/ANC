@@ -1,8 +1,6 @@
 import torch.nn as nn
 import torch
 
-
-
 input = torch.tensor([[[1, 2, 3, 4, 5]]], dtype=torch.float32)
 w = torch.tensor([[[1, 2, 1]]], dtype=torch.float32)
 b = torch.tensor([0], dtype=torch.float32)

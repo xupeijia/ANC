@@ -1,17 +1,13 @@
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
-import scipy.signal as signal
 import common
 import create_data
 import crnn_lstm
-from criteria import LossFunction
-
 
 # 设置超参数
-num_epochs = 20
+num_epochs = 30
 
 # 导入原始数据
 filename = 'GE-SZNGA Premier-3D-AXT1-MPR.txt'
@@ -58,7 +54,7 @@ for epoch in range(num_epochs):
         # 进行i_stft
         outputs = create_data.i_stft(outputs, 320, 160)
         # 传入次级路径
-        outputs = 3.3*torch.tanh_(0.3*outputs)
+        outputs = 3.3 * torch.tanh_(0.3 * outputs)
         outputs = create_data.sp_fun(outputs)
         # 计算损失
         loss = criterion(outputs, labels)
@@ -74,7 +70,7 @@ for epoch in range(num_epochs):
         # 进行i_stft
         outputs = create_data.i_stft(outputs, 320, 160)
         # 传入次级路径
-        outputs = 3.3*torch.tanh_(0.3*outputs)
+        outputs = 3.3 * torch.tanh_(0.3 * outputs)
         outputs = create_data.sp_fun(outputs)
         loss = criterion(outputs, labels)
         val_loss += criterion(outputs, labels)
@@ -101,7 +97,7 @@ for inputs, labels in test_loader:
     outputs = create_data.sp_fun(outputs)
     test_loss += criterion(outputs, labels)
     test_loss /= len(test_loader)
-        # print("test loss: ", test_loss)
+    # print("test loss: ", test_loss)
 
 # 预测
 predictions = []
@@ -126,4 +122,3 @@ plt.subplot(2, 1, 2)
 plt.plot(predictions, label='Predictions')
 plt.legend()
 plt.show()
-

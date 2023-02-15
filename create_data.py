@@ -60,8 +60,8 @@ def i_stft(out_tensor, window_size, shift_size):
 def sp_fun(x):
     # x = tensor(1,48000)
     x = torch.unsqueeze(x, 0)
-    w = torch.tensor([[[0.05, 0.2, 1]]], dtype=torch.float32)
-    conv = nn.Conv1d(in_channels=1, out_channels=1, kernel_size=(1, 3), padding='same', bias=False)
+    w = torch.tensor([[[0.05, 0.2, 1]]], dtype=torch.float32, device=device)
+    conv = nn.Conv1d(in_channels=1, out_channels=1, kernel_size=(1, 3), padding='same', bias=False, device=device)
     conv.weight.data = w
     output = conv(x)
     output = torch.squeeze(output, 0)
