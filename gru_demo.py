@@ -29,7 +29,7 @@ is_for_bp = False
 
 # 加载数据
 filename = 'GE-SZNGA Premier-3D-AXT1-MPR.txt'
-t, x = utils.read_vibration(file_name='GE-SZNGA Premier-3D-AXT1-MPR.txt')
+t, x = utils.read_vibration(filename, 5)
 
 # 降采样数据到16kHz
 sig = utils.resample_and_filter(x, 50000, 16000, 8000)

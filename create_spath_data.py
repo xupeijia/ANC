@@ -2,6 +2,7 @@ import scipy.signal as signal
 import numpy as np
 import pandas as pd
 import utils
+import path_function
 
 # 产生线性部分系数向量
 from matplotlib import pyplot as plt
@@ -38,7 +39,7 @@ y_total4 = [i + j for i, j in zip(y_linear, y_nl3)]
 
 x = x[2:]
 
-y_total5 = common.get_real_y_3(x)
+y_total5 = path_function.get_real_pynl_2(x)
 # 保存输入和输出
 df1 = pd.DataFrame({'x': x, 'y_linear': y_linear})
 df1.to_csv('x_and_y_linear1.csv', index=False)

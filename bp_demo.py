@@ -104,7 +104,6 @@ for inputs, labels in test_loader:
         outputs = path_function.sp_fun(outputs, sw, is_divided, is_for_crn, is_for_bp, device)
         test_loss += criterion(outputs, labels)
         test_loss /= len(test_loader)
-        # print("test loss: ", test_loss)
 
 # 预测
 predictions = []

@@ -7,8 +7,8 @@ import scipy.signal as signal
 
 
 # 读取初始数据
-def read_vibration(file_name):
-    df = pd.read_table(file_name, skiprows=5)
+def read_vibration(file_name, start_line, sep):
+    df = pd.read_table(file_name, skiprows=start_line, sep=sep)
     time = df.iloc[:, 0].values
     vibration = df.iloc[:, 1].values
     return time, vibration
