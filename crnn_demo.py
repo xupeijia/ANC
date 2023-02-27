@@ -104,7 +104,7 @@ for inputs, _ in test_loader:
     inputs = inputs.to(device)
     with torch.no_grad():
         prediction = model(inputs)
-        # 输出进行istft
+        # 输出进行i_stft
         prediction = utils.i_stft(prediction, 320, 160, device)
         # 经过次级路径
         prediction = path_function.sp_fun(prediction, sw, is_divided, is_for_crn, is_for_bp, device)

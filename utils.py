@@ -75,6 +75,10 @@ def create_segment(sig, time, seg_len, shift_len, sample_rate, device):
     return signals
 
 
+def create_segment2(sig, seg_len, shift_len, sample_rate, device):
+    return 0
+
+
 def stft(sig, window_size, shift_size, device):
     # 把序列(batch_size, segment)转成网络输入的tensor(batch_size, feature_maps, time_steps, frequency)
     window = torch.hann_window(window_size, device=device)
